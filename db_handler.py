@@ -51,12 +51,12 @@ def show_table(table_name):
 
 def init_all_tables():
     project_table = "CREATE TABLE IF NOT EXISTS projects(project_id integer PRIMARY KEY, date text NOT NULL, cu_name text NOT NULL, name text NOT NULL);"
-    dev_tools_table = "CREATE TABLE IF NOT EXISTS dev_tools(project_id integer, tool_id integer NOT NULL, PRIMARY KEY(project_id, tool_id), tool_name text NOT NULL, FOREIGN KEY (project_id) REFERENCES projects(project_id)) ON DELETE CASCADE ON UPDATE CASCADE;"
-    mile_stones_table = "CREATE TABLE IF NOT EXISTS mile_stones(project_id INTEGER, mile_stone_id INTEGER, PRIMARY KEY(project_id, mile_stone_id), description text, date text NOT NULL, price DOUBLE NOT NULL, FOREIGN KEY (project_id) REFERENCES projects(project_id)) ON DELETE CASCADE ON UPDATE CASCADE;"
-    engineer_table = "CREATE TABLE IF NOT EXISTS engineers (engineer_id integer PRIMARY KEY, date_of_birth text NOT NULL, adress text NOT NULL, name text NOT NULL, software_interests integer NOT NULL, FOREIGN KEY (software_interests) REFERENCES software_interests(interest_id)) ON DELETE CASCADE ON UPDATE CASCADE;"
+    dev_tools_table = "CREATE TABLE IF NOT EXISTS dev_tools(project_id integer NOT NULL, tool_id integer NOT NULL, PRIMARY KEY(project_id, tool_id), tool_name text NOT NULL, stage INTEGER NOT NULL, FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE ON UPDATE CASCADE);"
+    mile_stones_table = "CREATE TABLE IF NOT EXISTS mile_stones(project_id INTEGER, mile_stone_id INTEGER, PRIMARY KEY(project_id, mile_stone_id), description text, date text NOT NULL, price DOUBLE NOT NULL, FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE ON UPDATE CASCADE);"
+    engineer_table = "CREATE TABLE IF NOT EXISTS engineers (engineer_id integer PRIMARY KEY, date_of_birth text NOT NULL, adress text NOT NULL, name text NOT NULL, software_interests integer NOT NULL, FOREIGN KEY (software_interests) REFERENCES software_interests(interest_id) ON DELETE CASCADE ON UPDATE CASCADE);"
     software_interests_eng = "CREATE TABLE IF NOT EXISTS software_interests (interest_id INTEGER PRIMARY KEY, interest_specelity text NOT NULL, interest_name text NOT NULL);"
     phone_table = "CREATE TABLE IF NOT EXISTS phone (phone_number varchar(10)  PRIMARY KEY, engineer_id integer NOT NULL, FOREIGN KEY (engineer_id) REFERENCES engineers (engineer_id));"
-    project_to_eng_table = "CREATE TABLE IF NOT EXISTS project_to_eng (project_id integer NOT NULL, engineer_id integer NOT NULL, grade double NOT NULL, FOREIGN KEY (project_id) REFERENCES projects (project_id), FOREIGN KEY (engineer_id) REFERENCES Engineers(engineer_id)) ON DELETE CASCADE ON UPDATE CASCADE;"
+    project_to_eng_table = "CREATE TABLE IF NOT EXISTS project_to_eng (project_id integer NOT NULL, engineer_id integer NOT NULL, grade double NOT NULL, FOREIGN KEY (project_id) REFERENCES projects (project_id), FOREIGN KEY (engineer_id) REFERENCES Engineers(engineer_id) ON DELETE CASCADE ON UPDATE CASCADE);"
     cursor = get_connection().cursor()
     try:
         cursor.execute(project_table)
@@ -136,9 +136,9 @@ def insert_projects(proj_id, date, customer_name, name):
         db.rollback()
 
 
-def insert_dev_tools(proj_id, tool_id, tool_name):
-    query = ("insert into dev_tools VALUES (%s, %s, %s)")
-    data = (proj_id, tool_id, tool_name)
+def insert_dev_tools(proj_id, tool_id, tool_name, stage):
+    query = ("insert into dev_tools VALUES (%s, %s, %s, %s)")
+    data = (proj_id, tool_id, tool_name, stage)
     db = get_connection()
     cursor = db.cursor()
     try:
@@ -271,7 +271,48 @@ def update_engineer(id, date, adr, name, interests):
         cursor.execute(query)
         db.commit()
     except Exception as e:
-        print "insert failed to engineer table " + e.message + e.args
+        print "update engineer failed " + e.message + e.args
         db.rollback()
 
 
+def update_software_interests(id, specelity, name):
+    query = ("""
+    update software_interests 
+    set interest_specelity=%s, interest_name=%s) 
+    where interest_id=%s"""), (specelity, name, id)
+    db = get_connection()
+    cursor = db.cursor()
+    try:
+        cursor.execute(query)
+        db.commit()
+    except Exception as e:
+        print "update software_interests failed " + e.message + e.args
+        db.rollback()
+
+
+def update_project(_id, _data, _cu_name, _name):
+    query = ("""
+    update projects 
+    set date=%s, cu_name=%s, name=%s) 
+    where project_id=%s"""), (_data, _cu_name, _name, _id)
+    db = get_connection()
+    cursor = db.cursor()
+    try:
+        cursor.execute(query)
+        db.commit()
+    except Exception as e:
+        print "update projects failed " + e.message + e.args
+        db.rollback()
+
+
+def get_prjName_tools_by_stageID(stageid):
+    query = ("select project_id,tool_name from dev_tools where stage=%s")
+    data = stageid
+    db = get_connection()
+    cursor = db.cursor()
+    try:
+        cursor.execute(query, (data,))
+    except Exception as e:
+        print 'insert failed ' + e.message + e.args
+    res = cursor.fetchall()
+    return res
